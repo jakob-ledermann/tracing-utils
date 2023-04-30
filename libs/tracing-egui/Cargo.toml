@@ -6,9 +6,9 @@ edition = "2018"
 description = "Display logged tracing events in-app with egui"
 
 [dependencies.egui]
-version = "0.14.2"
+version = "0.21.0"
 default-features = false
-features = [ "single_threaded" ] # required feature
+features = [ ] # required feature
 
 [dependencies.once_cell]
 version = "1.8.0"
@@ -26,7 +26,7 @@ default-features = false
 features = [ "const_generics", "union" ]
 
 [dependencies.smartstring]
-version = "0.2.9"
+version = "1.0.1"
 default-features = false
 features = [ "std" ]
 

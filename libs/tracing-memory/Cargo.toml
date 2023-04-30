@@ -39,7 +39,7 @@ default-features = false
 features = [ "std" ]
 
 [dependencies.smartstring]
-version = "0.2.9"
+version = "1.0.1"
 default-features = false
 features = [ "std" ]
 
@@ -48,6 +48,6 @@ version = "0.1.26"
 default-features = false
 
 [dependencies.tracing-subscriber]
-version = "0.2.20"
+version = "0.3.17"
 default-features = false
-features = [ "registry", "chrono", "parking_lot" ]
+features = [ "registry", "parking_lot" ]

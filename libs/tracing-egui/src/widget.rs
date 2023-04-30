@@ -1,4 +1,5 @@
 use crate::filter::EventFilter;
+use egui::CollapsingHeader;
 use tracing_memory::{with_events, Event, Field};
 
 #[derive(Debug)]
@@ -25,7 +26,7 @@ struct State {
 impl egui::Widget for Widget {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         let id = ui.make_persistent_id("tracing-egui::LogPanel");
-        let mut state = ui.memory().id_data_temp.get_or_default::<State>(id).clone();
+        let mut state = ui.memory_mut(|x| x.data.get_temp::<State>(id).unwrap_or_default());
 
         let inner = ui.allocate_ui(ui.available_size(), |ui| {
             let filter = if self.filter {
@@ -34,7 +35,7 @@ impl egui::Widget for Widget {
                     ui.add(
                         egui::TextEdit::singleline(&mut state.filters)
                             .hint_text("target[span{field=value}]=level")
-                            .text_style(egui::TextStyle::Monospace),
+                            .font(egui::TextStyle::Monospace),
                     );
                     egui::reset_button(ui, &mut state.filters);
                     match state.filters.parse() {
@@ -55,12 +56,13 @@ impl egui::Widget for Widget {
                 EventFilter::default()
             };
 
-            egui::ScrollArea::auto_sized()
+            egui::ScrollArea::new([true; 2])
+                .auto_shrink([true; 2])
                 .always_show_scroll(true)
                 .show(ui, show_log(filter));
         });
 
-        ui.memory().id_data_temp.insert(id, state);
+        ui.memory_mut(|x| x.data.insert_temp(id, state));
         inner.response
     }
 }
@@ -83,21 +85,24 @@ fn show_log(filter: EventFilter) -> impl FnOnce(&mut egui::Ui) {
                 if filter.excludes(event) {
                     continue;
                 }
-                match event.field("message") {
-                    Some(message) => egui::CollapsingHeader::new(format_args!(
+                let text = match event.field("message") {
+                    Some(message) => format_args!(
                         "[{}] [{}] {}",
                         event.timestamp().format("%H:%M:%S%.3f"),
                         event.meta().level(),
                         display_field(message),
-                    )),
-                    None => egui::CollapsingHeader::new(format_args!(
+                    )
+                    .to_string(),
+                    None => format_args!(
                         "[{}] [{}]",
                         event.timestamp().format("%H:%M:%S%.3f"),
                         event.meta().level(),
-                    )),
-                }
-                .id_source(ui.make_persistent_id(event_ix))
-                .show(ui, show_event(event));
+                    )
+                    .to_string(),
+                };
+                let header = CollapsingHeader::new(text)
+                    .id_source(ui.make_persistent_id(event_ix))
+                    .show(ui, show_event(event));
             }
         });
     }
@@ -105,24 +110,20 @@ fn show_log(filter: EventFilter) -> impl FnOnce(&mut egui::Ui) {
 
 fn show_event(event: &Event) -> impl '_ + FnOnce(&mut egui::Ui) {
     move |ui: &mut egui::Ui| {
-        egui::CollapsingHeader::new(format_args!(
-            "{} {}",
-            event.meta().target(),
-            event.meta().name(),
-        ))
+        egui::CollapsingHeader::new(
+            format_args!("{} {}", event.meta().target(), event.meta().name(),).to_string(),
+        )
         .id_source(ui.make_persistent_id(0usize))
-        .text_style(egui::TextStyle::Monospace)
+        //        .text_style(egui::TextStyle::Monospace)
         .show(ui, show_fields(event.fields()));
 
         for (span_ix, span) in std::iter::successors(event.span(), |span| span.parent()).enumerate()
         {
-            egui::CollapsingHeader::new(format_args!(
-                "{}::{}",
-                span.meta().target(),
-                span.meta().name(),
-            ))
+            egui::CollapsingHeader::new(
+                format_args!("{}::{}", span.meta().target(), span.meta().name(),).to_string(),
+            )
             .id_source(ui.make_persistent_id(span_ix + 1))
-            .text_style(egui::TextStyle::Monospace)
+            //.text_style(egui::TextStyle::Monospace)
             .show(ui, show_fields(span.fields()));
         }
     }
@@ -134,7 +135,11 @@ fn show_fields<'a, 'b>(
     move |ui: &mut egui::Ui| {
         for (name, value) in fields {
             value
-                .with_debug(|value| ui.add(egui::Label::new(format_args!("{}: {:?}", name, value))))
+                .with_debug(|value| {
+                    ui.add(egui::Label::new(
+                        format_args!("{}: {:?}", name, value).to_string(),
+                    ))
+                })
                 .for_each(drop)
         }
     }

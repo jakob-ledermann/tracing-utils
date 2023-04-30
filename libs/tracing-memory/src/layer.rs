@@ -22,7 +22,6 @@ impl<S> Layer<S> {
 
 impl<S> Default for Layer<S> {
     fn default() -> Self {
-        smartstring::validate();
         Layer {
             _inner: PhantomData,
         }
@@ -33,7 +32,7 @@ impl<S> tracing_subscriber::Layer<S> for Layer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    fn new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, ctx: layer::Context<'_, S>) {
+    fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, ctx: layer::Context<'_, S>) {
         let span = ctx.span(id).expect("Span not found, this is a bug");
         on_span(span, attrs);
     }
