@@ -104,6 +104,10 @@ fn show_log(filter: EventFilter) -> impl FnOnce(&mut egui::Ui) {
                     .id_source(ui.make_persistent_id(event_ix))
                     .show(ui, show_event(event));
             }
+
+            if events.len() > 10000 {
+                events.remove(0);
+            }
         });
     }
 }
